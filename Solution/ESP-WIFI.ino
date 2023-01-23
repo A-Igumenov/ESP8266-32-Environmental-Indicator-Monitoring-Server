@@ -106,7 +106,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 int ledPin                     = D4;            // For control of LED possibility use 2 or LED_BUILTIN or D4 value
 int LED_logic_val              = 0;             // LED control logic variable
 
-const char* ssid               = "xxxx";        // your WiFi Name
+const char* ssid               = "xxxxx";       // your WiFi Name
 const char* password           = "xxxxxxxx";    // Your Wifi Password
 AsyncWebServer server(80);                      // Asinchronios server object with work port
 AsyncEventSource events("/events");             // Asinchronios mesages events path
@@ -269,7 +269,7 @@ void Timeline(){
 }
 void TimelineWeb(){
   getLocalTime(&timeinfo);                       // Function fill time info tm type structure after time synchronisation
-  sprintf(Time_line_Web, "Date: %04d-%02d-%02d, %s\nTime: %02d:%02d",timeinfo.tm_year+1900, timeinfo.tm_mon+1,timeinfo.tm_mday,  String(FulldaysOfTheWeek[timeinfo.tm_wday]),timeinfo.tm_hour,timeinfo.tm_min);
+  sprintf(Time_line_Web, "Date: %04d-%02d-%02d, %s<br>%02d:%02d",timeinfo.tm_year+1900, timeinfo.tm_mon+1,timeinfo.tm_mday,  String(FulldaysOfTheWeek[timeinfo.tm_wday]),timeinfo.tm_hour,timeinfo.tm_min);
 }
 
 void send_events(){
@@ -280,7 +280,7 @@ void send_events(){
     events.send(Time_line_Web,"date",millis());
     events.send(String(t,1).c_str(),"temperature",millis());
     events.send(String(h,1).c_str(),"humidity",millis());
-    events.send(String(averaged,0).c_str(),"co2",millis()); // ppm / averaged
+    events.send(String(ppm,0).c_str(),"co2",millis()); // ppm / averaged for calibration data view on CO2 feald on web page
     events.send(web_page_text_wraper("LED_STATE").c_str(),"led_state",millis());
 }
 
@@ -295,7 +295,7 @@ String web_page_text_wraper(const String& var){
     return String(h,0);
   }
   else if(var == "CO2"){
-    return String(averaged,0);                   // ppm or averaged
+    return String(ppm,0);                   // ppm or averaged for calibration data view on CO2 feald on web page
   }
   else if(var == "LED_STATE"){
     return String((LED_logic_val==0)?"OFF":"ON");
@@ -331,7 +331,7 @@ void sensors_data_on_led_print(){
   lcd.setCursor(2, 2);
   lcd.write((uint8_t)0); 
   lcd.setCursor(0, 3);
-  sprintf(A, "CO2 cor.: %4.0f (PPM)", cor_ppm);  //averaged / cor_ppm
+  sprintf(A, "CO2 cor.: %4.0f (PPM)", cor_ppm);  // cor_ppm / averaged for calibration data view on LCD
   lcd.print(A); 
   lcd.setCursor(2, 3);
   lcd.write((uint8_t)0);
