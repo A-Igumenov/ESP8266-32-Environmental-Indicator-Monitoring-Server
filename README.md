@@ -5,3 +5,8 @@ Using ESP8266/32 microcontroller to retrieve MQ135 (CO2) and DHT11 (temperature 
 ![Solution scheme](DHT11+MQ135+LED+WIFI_bb.jpg)
 ## Web service with events work demonstration
 ![ESP WebPage](ESP_page_with_events.gif)
+## Future works
+1. Realize more readable local web page
+2. Create a public MySQL DB to send data to it
+3. Create a public web page with google maps integration and device data publishing on it  
+
