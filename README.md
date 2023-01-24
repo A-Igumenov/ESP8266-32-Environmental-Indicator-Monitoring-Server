@@ -2,7 +2,7 @@
 ## Basic idea
 Using ESP8266/32 microcontroller to retrieve MQ135 (CO2) and DHT11 (temperature and humidity) sensor data and display them in the local network via a web server with events technology using the microcontroller over the local network, as well as duplicate the output on the I2C LCD screen. The solution uses OTA update via wifi and syncs the local clock at startup via an NTP server on the internet.  
 ## Solution soldering scheme:
-![Solution scheme](DHT11+MQ135+LED+WIFI_bb.jpg)
+![Solution scheme](DHT11+MQ135+LED+WIFI_bb.jpg)   
 ## Web service with events work demonstration
 ![ESP WebPage](ESP_page_with_events.gif)
 ## Power request
