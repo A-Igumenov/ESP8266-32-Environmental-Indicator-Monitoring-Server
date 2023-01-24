@@ -5,8 +5,18 @@ Using ESP8266/32 microcontroller to retrieve MQ135 (CO2) and DHT11 (temperature 
 ![Solution scheme](DHT11+MQ135+LED+WIFI_bb.jpg)
 ## Web service with events work demonstration
 ![ESP WebPage](ESP_page_with_events.gif)
+## Energy request
+Power request: 
+* ESP with sensors only 0.08 to 0.11 A. 
+* ESP with sensors and LCD from 0.11 to 0.17A.
+
 ## Future works
 1. ~~Realize more readable local web page~~ (Done, LCD and WEB page use different date and time output line)
 2. Create a public MySQL DB to send data to it
 3. Create a public web page with google maps integration and device data publishing on it  
 
+## Find problems
+1. Hight energy usage, possible - a system not required to turn on sensors all time. 
+  * For temperature/humidity sensor work time must be maybe 10 sec. every 10 min. 
+  * CO_2 sensor 15 min every 60 min. 
+  * As a result, the soldering scheme must be changed to give possibility turn sensors on/off.  
