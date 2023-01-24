@@ -5,20 +5,23 @@
 #include <ESP8266mDNS.h>
 #include <ESPAsyncTCP.h>                                          
 #include <ESPAsyncWebServer.h> 
+#include <AsyncElegantOTA.h>
 #include <ArduinoOTA.h>
 #include <LiquidCrystal_I2C.h>
 #include <DHT.h>
 #include "time.h"
 
+
 // new functions declaration
-float MQCalibration();
-void MQ_DHT_read();
-void DHT_data();
-String web_page_text_wraper(const String& var);
-void send_events();
-void Timeline();
-void TimelineWeb();
-void sensors_data_on_led_print();
+float   MQCalibration();
+void    MQ_DHT_read_First();
+void    MQ_DHT_read();
+void    DHT_data();
+String  web_page_text_wraper(const String& var);
+void    send_events();
+void    Timeline();
+void    TimelineWeb();
+void    sensors_data_on_led_print();
 
 // Sub 2 symbol to output on LCD
 byte sub_two[8] = {
@@ -52,7 +55,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         <tr><th colspan="2">Temperature and Humidity</th></tr>
       </thead>
       <tbody>
-        <tr><td style="text-align: center;"><i class="fas fa-thermometer-half" style="color:#e60707;"> Temperature</i></td><td style="text-align: right;"> <span class="reading"><span id="temp">%TEMPERATURE%</span> &deg;C</span></td></tr>
+        <tr><td style="text-align: center;"><i class="fas fa-thermometer-half" style="color:#e60707;">Temperature</i></td><td style="text-align: right;"> <span class="reading"><span id="temp">%TEMPERATURE%</span> &deg;C</span></td></tr>
         <tr><td style="text-align: center;"><i class="fas fa-umbrella" style="color:#03e8fc;">Humidity</i></td><td style="text-align: right;"> <span class="reading"><span id="hum">%HUMIDITY%</span> &percnt;</span></td></tr>
         <tr><td style="text-align: center;"><i class="fas fa-wind" style="color:#0849fc;">CO<sub>2</sub></i></td><td style="text-align: right;"><span class="reading"><span id="co2">%CO2%</span> PPM</span></td></tr>
       </tbody>
@@ -62,6 +65,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <a href="/LED=ON"><button style='FONT-SIZE: 50px; HEIGHT: 200px;WIDTH: 300px; 126px; Z-INDEX: 0; TOP: 200px;'>Turn On </button></a>
     <a href="/LED=OFF"><button style='FONT-SIZE: 50px; HEIGHT: 200px;WIDTH: 300px; 126px; Z-INDEX: 0; TOP: 200px;'>Turn Off </button></a>
     <br>
+    <p style="text-align: center;color:#0849fc;FONT-SIZE: 35px;"><a href="/update">Update ESP Sensors block</a></p>
     </div>
     <script>
       if (!!window.EventSource) {
@@ -103,11 +107,11 @@ const char index_html[] PROGMEM = R"rawliteral(
   </html>
 )rawliteral";
 
-int ledPin                     = D4;            // For control of LED possibility use 2 or LED_BUILTIN or D4 value
-int LED_logic_val              = 0;             // LED control logic variable
+int         ledPin             = D4;            // For control of LED possibility use 2 or LED_BUILTIN or D4 value
+int         LED_logic_val      = 0;             // LED control logic variable
 
 const char* ssid               = "xxxxx";       // your WiFi Name
-const char* password           = "xxxxxxxx";    // Your Wifi Password
+const char* password           = "xxxxxxxxxxx"; // Your Wifi Password
 AsyncWebServer server(80);                      // Asinchronios server object with work port
 AsyncEventSource events("/events");             // Asinchronios mesages events path
 
@@ -115,37 +119,43 @@ const char* ntpServer          = "pool.ntp.org";// Internet time server adress
 const int   gmtOffset_sec      = 0;             // 0 timeline
 const int   timeline           = 2;             // Yours living timeline
 const int   utcOffsetInSeconds = timeline*3600; // offset time recalculation
-char daysOfTheWeek[7][4]       = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}; // variable to convert weekdays from numbers to words
-char FulldaysOfTheWeek[7][10]  = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}; // variable to convert full weekdays from numbers to words
-struct tm timeinfo;                             // Structure to fill local time data from NTP
-char Time_line[40];                             // Converted to string time output variable
-char Time_line_Web[40];                         // Converted to string time output variable for web
+char        daysOfTheWeek[7][4]= {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}; // variable to convert weekdays from numbers to words
+char        FulldaysOfTheWeek[7][10] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}; // variable to convert full weekdays from numbers to words
+struct      tm timeinfo;                        // Structure to fill local time data from NTP
+char        Time_line[40];                      // Converted to string time output variable
+char        Time_line_Web[40];                  // Converted to string time output variable for web
 
-#define DHTTYPE DHT11                           // Type of DHT                                 
-const int DHT11_PIN            = D3;            // DHT pin number
-float   t = 0,  h = 0;                          // temperature and humidity variables 
-DHT dht(DHT11_PIN, DHTTYPE);                    // DHT initialized object in aplication
+#define     DHTTYPE              DHT11          // Type of DHT                                 
+const int   DHT11_PIN          = D3;            // DHT pin number
+const int   DHT_PW_PIN         = D5;			// DHT sensor power pin
+float       t = 0,  h = 0;                      // temperature and humidity variables 
+DHT         dht(DHT11_PIN, DHTTYPE);            // DHT initialized object in aplication
 
-#define MQ_PIN                   A0             // analog input use with MQ135
-MQ135 gasSensor                = MQ135(MQ_PIN); // MQ135 object
-int val                        = 0;             // raw values from MQ135 saving variable
-float ppm                      = 0.;            // Direct CO2 value from MQ135
-float cor_ppm                  = 0.;            // Corrected CO2 value by temperature and Humidity from MQ135
+#define     MQ_PIN               A0             // analog input use with MQ135
+#define     MQ_PW_PIN            D6				// MQ135 sensor power pin
+MQ135       gasSensor          = MQ135(MQ_PIN); // MQ135 object
+int         val                = 0;             // raw values from MQ135 saving variable
+float       ppm                = 0.;            // Direct CO2 value from MQ135
+float       cor_ppm            = 0.;            // Corrected CO2 value by temperature and Humidity from MQ135
 
 unsigned long previousMillis   = 0;             // Time loop variable store previous time value
 unsigned long currentMillis    = 0;             // Time loop variable store curent time value
 const long Check_Change_interval=20000;         // Time loop length 
+unsigned long previousMillisSensT= 0;           // Time loop variable store previous time value of checking temperature
+const long Check_Change_interval_SensT=300000;  // Temperature checking interval
+unsigned long previousMillisSensC= 0;           // Time loop variable store previous time value of checking CO2
+const long Check_Change_interval_SensC=3600000; // CO2 checking interval
 
 
-#define I2C_ADDR                 0x3F           // I2C LCD screen adress 
-#define LCD_COLUMNS              20             // LCD screen column number
-#define  LCD_LINES               4              // LCD screen line number
+#define     I2C_ADDR             0x3F           // I2C LCD screen adress 
+#define     LCD_COLUMNS          20             // LCD screen column number
+#define     LCD_LINES            4              // LCD screen line number
 LiquidCrystal_I2C lcd(I2C_ADDR,LCD_COLUMNS, LCD_LINES); // initialization of LCD screen object inside of sketch 
 
-float sum                      = 0;             // to save rZero MQ135 averaged value
+float       sum                = 0;             // to save rZero MQ135 averaged value
 unsigned long int times        = 0; 
-float averaged                 = 0.;            // variable to calculate MQ135 rZero averaged value
-char A[20];                                     // variable to output strings on LCD 
+float       averaged           = 0.;            // variable to calculate MQ135 rZero averaged value
+char        A[20];                              // variable to output strings on LCD 
 
 void setup() { 
   configTime(gmtOffset_sec, utcOffsetInSeconds, ntpServer); // startup command to time synchronisation with NTP server
@@ -153,6 +163,8 @@ void setup() {
   dht.begin();                                  // DHT11 sensor enabling 
   pinMode(MQ_PIN, INPUT);                       // Setup of MQ pin for reading data
   pinMode(ledPin, OUTPUT);                      // config LED pin to output
+  pinMode(DHT_PW_PIN, OUTPUT); 
+  pinMode(MQ_PW_PIN, OUTPUT); 
   digitalWrite(ledPin, HIGH);                   // disabling light on LED pin (because is used build in led - it has inverted control)
   lcd.init();
   lcd.backlight();
@@ -179,8 +191,9 @@ void setup() {
 
   // Web Server Setup, Events programming 
   server.addHandler(&events);
-  server.begin();             // start of Web service
-  server.on("/", HTTP_GET, [ ](AsyncWebServerRequest *request){
+  AsyncElegantOTA.begin(&server,"user","123");			// Start ElegantOTA
+  server.begin();             							// start of Web service
+  server.on("/", HTTP_GET, [ ](AsyncWebServerRequest *request){ // WEB pages adresses for serever handing
     request->send_P(200, "text/html", index_html, web_page_text_wraper);
     // Set ledPin according to the request
     digitalWrite(ledPin, !LED_logic_val);
@@ -205,7 +218,7 @@ void setup() {
     client->send("hello!", NULL, millis(), 1000);
     });
   delay(1000);
-  MQ_DHT_read();                                 //data renew from sensors and from clock
+  MQ_DHT_read_First();                           //data first read from sensors and from clock
   Timeline();                                    //
   send_events();                                 // first events sent to web client
   sensors_data_on_led_print();                   // data output doubling to LCD
@@ -244,12 +257,12 @@ void setup() {
       //Serial.println("End Failed");
     }
   });
- }
+}
 
 
 
 void loop(){  
-  ArduinoOTA.handle();                           // OTA checking on loop start
+  ArduinoOTA.handle();                           // WIFI OTA checking on loop start
   currentMillis = millis();                      // Time loop, to minimize data sending on LCD and WEB page
   if (currentMillis- previousMillis >= Check_Change_interval) {
     send_events();
@@ -280,7 +293,7 @@ void send_events(){
     events.send(Time_line_Web,"date",millis());
     events.send(String(t,1).c_str(),"temperature",millis());
     events.send(String(h,1).c_str(),"humidity",millis());
-    events.send(String(ppm,0).c_str(),"co2",millis()); // ppm / averaged for calibration data view on CO2 feald on web page
+    events.send(String(ppm,0).c_str(),"co2",millis()); // ppm / averaged
     events.send(web_page_text_wraper("LED_STATE").c_str(),"led_state",millis());
 }
 
@@ -295,7 +308,7 @@ String web_page_text_wraper(const String& var){
     return String(h,0);
   }
   else if(var == "CO2"){
-    return String(ppm,0);                   // ppm or averaged for calibration data view on CO2 feald on web page
+    return String(ppm,0);                   // ppm or averaged
   }
   else if(var == "LED_STATE"){
     return String((LED_logic_val==0)?"OFF":"ON");
@@ -309,11 +322,41 @@ float MQCalibration(){
 }
 
 void MQ_DHT_read(){
-  val     = analogRead(MQ_PIN);
-  ppm     = gasSensor.getPPM();
+  currentMillis = millis();                      // Time loop, to minimize data getting energy usage
+  if (currentMillis- previousMillisSensT >= Check_Change_interval_SensT) {
+    digitalWrite(DHT_PW_PIN, HIGH);
+    delay(10000);
+    t       = dht.readTemperature();
+    h       = dht.readHumidity();
+    digitalWrite(DHT_PW_PIN, LOW);
+    previousMillisSensT = millis();
+  }
+    if (currentMillis- previousMillisSensC >= Check_Change_interval_SensC) {
+    digitalWrite(MQ_PW_PIN, HIGH);
+    delay(10000);
+    MQCalibration();
+    val     = analogRead(MQ_PIN);
+    ppm     = gasSensor.getPPM();
+    cor_ppm = gasSensor.getCorrectedPPM(t,h);
+    
+    digitalWrite(MQ_PW_PIN, LOW);
+    previousMillisSensC = millis();
+  }
+}
+
+void MQ_DHT_read_First(){
+  digitalWrite(DHT_PW_PIN, HIGH);
+  delay(10000);
   t       = dht.readTemperature();
   h       = dht.readHumidity();
+  digitalWrite(DHT_PW_PIN, LOW);
+  digitalWrite(MQ_PW_PIN, HIGH);
+  delay(10000);
+  MQCalibration();
+  val     = analogRead(MQ_PIN);
+  ppm     = gasSensor.getPPM();
   cor_ppm = gasSensor.getCorrectedPPM(t,h);
+  digitalWrite(MQ_PW_PIN, LOW);
 }
 
 void sensors_data_on_led_print(){
@@ -331,7 +374,7 @@ void sensors_data_on_led_print(){
   lcd.setCursor(2, 2);
   lcd.write((uint8_t)0); 
   lcd.setCursor(0, 3);
-  sprintf(A, "CO2 cor.: %4.0f (PPM)", cor_ppm);  // cor_ppm / averaged for calibration data view on LCD
+  sprintf(A, "CO2 cor.: %4.0f (PPM)", cor_ppm);  //averaged / cor_ppm
   lcd.print(A); 
   lcd.setCursor(2, 3);
   lcd.write((uint8_t)0);
