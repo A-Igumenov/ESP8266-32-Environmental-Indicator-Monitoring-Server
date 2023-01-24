@@ -5,10 +5,10 @@ Using ESP8266/32 microcontroller to retrieve MQ135 (CO2) and DHT11 (temperature 
 ![Solution scheme](DHT11+MQ135+LED+WIFI_bb.jpg)
 ## Web service with events work demonstration
 ![ESP WebPage](ESP_page_with_events.gif)
-## Energy request
-Power request: 
+## Power request
 * ESP with sensors only 0.08 to 0.11 A. 
 * ESP with sensors and LCD from 0.11 to 0.17A.
+As result - not a very good solution, because 5 000 mAh battery in the first case works only about 45 -60 hours. In the second 29 - 45 hours. 
 
 ## Future works
 1. ~~Realize more readable local web page~~ (Done, LCD and WEB page use different date and time output line)
