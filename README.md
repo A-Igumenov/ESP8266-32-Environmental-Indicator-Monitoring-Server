@@ -4,7 +4,7 @@ Using ESP8266/32 microcontroller to retrieve MQ135 (CO2) and DHT11 (temperature 
 ## Solution soldering scheme:
 ![Solution scheme](DHT11+MQ135+LED+WIFI_bb.jpg)   
 ## Web service with events work demonstration
-![ESP WebPage](ESP_page_with_events.gif)
+![ESP WebPage]( )
 ## Power request
 * ESP with sensors only 0.08 to 0.11 A. 
 * ESP with sensors and LCD from 0.11 to 0.17A.
